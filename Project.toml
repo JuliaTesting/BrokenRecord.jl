@@ -3,7 +3,15 @@ uuid = "bdd55f5b-6e67-4da1-a080-6086e55655a0"
 authors = ["Chris de Graaf <me@cdg.dev> and contributors"]
 version = "0.1.0"
 
+[deps]
+BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
+Cassette = "7057c7e9-c182-5462-911a-8362d720325c"
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+
 [compat]
+BSON = "0.2"
+Cassette = "0.3"
+HTTP = "0.8.15, 0.8"
 julia = "1"
 
 [extras]
