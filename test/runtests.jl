@@ -1,4 +1,4 @@
-using Test: @test, @testset
+using Test: @test, @testset, @test_throws
 
 using BSON: load
 using HTTP: HTTP
@@ -13,10 +13,13 @@ using HTTPPlayback: playback
         @test load(path) == Dict(:responses => [])
 
         path = joinpath(dir, "test2.bson")
-        @test !isfile(path)
         resp1 = playback(() -> HTTP.get("https://httpbin.org/get"), path)
         @test isfile(path)
         resp2 = playback(() -> HTTP.get("https://httpbin.org/get"), path)
         @test resp1.body == resp2.body
+
+        path = joinpath(dir, "test3.bson")
+        playback(() -> HTTP.get("https://httpbin.org/get"), path)
+        @test_throws Exception playback(() -> HTTP.get("https://httpbin.org/ip"), path)
     end
 end
