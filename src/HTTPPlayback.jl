@@ -3,6 +3,13 @@ module HTTPPlayback
 using BSON: bson, load
 using Cassette: Cassette, disablehooks, overdub, @context
 using HTTP: HTTP, request
+using Suppressor: @suppress
+
+function __init__()
+    # Hiding the stacktrace from Cassette#174.
+    ctx = RecordingCtx(; metadata=[])
+    @suppress overdub(ctx, () -> HTTP.get("https://httpbin.org/get"))
+end
 
 @context RecordingCtx
 Cassette.posthook(ctx::RecordingCtx, resp, ::typeof(request), ::Type{Union{}}, args...) =
