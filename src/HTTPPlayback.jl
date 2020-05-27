@@ -112,7 +112,8 @@ function Cassette.overdub(
 end
 Cassette.overdub(ctx::PlaybackCtx, ::typeof(request), ::HTTPMethod, u, h, b) =
     popfirst!(ctx.metadata.responses)
-after(::PlaybackCtx, path) = nothing
+after(ctx::PlaybackCtx, path) =
+    isempty(ctx.metadata.responses) || error("Found unused responses")
 
 """
     configure!(; dir=nothing, ignore_headers=nothing, ignore_query=nothing)
