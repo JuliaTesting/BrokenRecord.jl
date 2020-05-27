@@ -10,6 +10,11 @@ using HTTP: HTTP, Header, URI, header, mkheaders, nobody, request, request_uri
 using Suppressor: @suppress
 
 const FORMAT = v"1"
+const DEFAULTS = Dict{Symbol, Any}(
+    :dir => "",
+    :ignore_headers => [],
+    :ignore_query => [],
+)
 
 function __init__()
     # Hiding the stacktrace from Cassette#174.
@@ -34,7 +39,8 @@ function filter_query(request, ignore)
     end
 end
 
-check_body(request, body) = request.body == body || error("Request body does not match")
+check_body(request, body) =
+    request.body == Vector{UInt8}(body) || error("Request body does not match")
 
 check_method(request, method) =
     request.method == method || error("Expected $(request.method) request, got $method")
@@ -49,12 +55,12 @@ function check_uri(request, uri; ignore)
     host = header(request, "Host")
     host == uri.host || error("Expected request to $host, got $(uri.host)")
     # Check path.
-    expected = HTTP.URI(request.target)
-    expected.path == uri.path ||
-        error("Expected request to $(expected.path), got $(uri.path)")
+    expected = URI(request.target)
+    path = isempty(uri.path) ? "/" : uri.path
+    expected.path == path || error("Expected request to $(expected.path), got $(uri.path)")
     # Check query string parameters.
-    expected_q = @show parse_query(expected)
-    observed_q = @show filter(drop_keys(ignore), parse_query(uri))
+    expected_q = parse_query(expected)
+    observed_q = filter(drop_keys(ignore), parse_query(uri))
     expected_q == observed_q || error("Query string parameters do not match")
 end
 
@@ -63,7 +69,7 @@ Cassette.posthook(ctx::RecordingCtx, resp, ::typeof(request), ::Type{Union{}}, a
     push!(ctx.metadata.responses, resp)
 function after(ctx::RecordingCtx, path)
     for resp in ctx.metadata.responses
-        filter!(drop_keys(ctx.metadata.ignore_headers), resp.headers)
+        filter!(drop_keys(ctx.metadata.ignore_headers), resp.request.headers)
         resp.request.target = filter_query(resp.request, ctx.metadata.ignore_query)
     end
     mkpath(dirname(path))
@@ -109,12 +115,27 @@ Cassette.overdub(ctx::PlaybackCtx, ::typeof(request), ::HTTPMethod, u, h, b) =
 after(::PlaybackCtx, path) = nothing
 
 """
+    configure!(; dir=nothing, ignore_headers=nothing, ignore_query=nothing)
+
+TODO
+"""
+function configure!(; dir=nothing, ignore_headers=nothing, ignore_query=nothing)
+    dir === nothing || (DEFAULTS[:dir] = dir)
+    ignore_headers === nothing || (DEFAULTS[:ignore_headers] = ignore_headers)
+    ignore_query === nothing || (DEFAULTS[:ignore_query] = ignore_query)
+end
+
+"""
     playback(f, path; ignore_headers=[], ignore_query=[])
 
 TODO
 """
-function playback(f, path; ignore_headers=[], ignore_query=[])
+function playback(
+    f, path;
+    ignore_headers=DEFAULTS[:ignore_headers], ignore_query=DEFAULTS[:ignore_query],
+)
     metadata = (; responses=[], ignore_headers=ignore_headers, ignore_query=ignore_query)
+    path = joinpath(DEFAULTS[:dir], path)
     ctx = if isfile(path)
         data = load(path)
         PlaybackCtx(; metadata=(; metadata..., responses=data[:responses]))

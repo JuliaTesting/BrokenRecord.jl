@@ -3,7 +3,7 @@ using Test: @test, @testset, @test_throws
 using BSON: load
 using HTTP: HTTP
 
-using HTTPPlayback: FORMAT, playback
+using HTTPPlayback: FORMAT, configure!, playback
 
 @testset "HTTPPlayback.jl" begin
     mktempdir() do dir
@@ -32,7 +32,7 @@ using HTTPPlayback: FORMAT, playback
         end
         @test_throws Exception playback(path) do
             # Wrong headers.
-            HTTP.post("https://httpbin.org/post"; body="hi", headers=["foo" => "bar"])
+            HTTP.post("https://httpbin.org/anything"; body="hi", headers=["foo" => "bar"])
         end
         @test_throws Exception playback(path) do
             # Wrong path.
@@ -53,5 +53,26 @@ using HTTPPlayback: FORMAT, playback
             HTTP.get("https://httpbin.org/get"; query=Dict("foo" => "bar"))
         end
         @test resp1.body == resp3.body
+
+        path = joinpath(dir, "test5.bson")
+        resp1 = playback(() -> HTTP.get("https://httpbin.org"), path)
+        resp2 = playback(() -> HTTP.get("https://httpbin.org"), path)
+        @test resp1.body == resp2.body
+
+        mktempdir() do dir2
+            configure!(; dir=dir2, ignore_headers=["foo"], ignore_query=["bar"])
+            path = "test.bson"
+            resp1 = playback(() -> HTTP.get("https://httpbin.org/get"), path)
+            @test !isfile("test.bson")
+            @test isfile(joinpath(dir2, "test.bson"))
+            resp2 = playback(path) do
+                HTTP.get(
+                    "https://httpbin.org/get";
+                    headers=["foo" => "bar"],
+                    query=Dict("bar" => "baz"),
+                )
+            end
+            @test resp1.body == resp2.body
+        end
     end
 end
