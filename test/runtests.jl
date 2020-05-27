@@ -63,7 +63,7 @@ const url = "https://httpbin.org"
     end
 
     mktempdir() do dir
-        configure!(; dir=dir, ignore_headers=["foo"], ignore_query=["bar"])
+        configure!(; path=dir, ignore_headers=["foo"], ignore_query=["bar"])
         path = "test.bson"
         resp1 = playback(() -> HTTP.get("$url/get"), path)
         @test !isfile("test.bson")
