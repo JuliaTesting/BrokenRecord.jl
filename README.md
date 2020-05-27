@@ -8,7 +8,7 @@ A VCR clone in Julia.
 > Record your test suite's HTTP interactions and replay them during future test runs for fast, deterministic, accurate tests.
 
 ```jl
-julia> using HTTPPlayback
+julia> using HTTPPlayback: HTTP, playback
 
 julia> isfile("test.bson")
 false
