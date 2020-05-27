@@ -3,11 +3,11 @@ using Test: @test, @testset, @test_throws
 using BSON: load
 using HTTP: HTTP
 
-using HTTPPlayback: FORMAT, configure!, playback
+using BrokenRecord: FORMAT, configure!, playback
 
 const url = "https://httpbin.org"
 
-@testset "HTTPPlayback.jl" begin
+@testset "BrokenRecord.jl" begin
     mktempdir() do dir
         path = joinpath(dir, "test1.bson")
         @test playback(() -> 1, path) == 1

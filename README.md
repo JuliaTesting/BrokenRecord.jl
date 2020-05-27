@@ -1,14 +1,14 @@
-# HTTPPlayback
+# BrokenRecord
 
-[![Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://docs.cdg.dev/HTTPPlayback.jl/stable)
-[![Build Status](https://travis-ci.com/christopher-dG/HTTPPlayback.jl.svg?branch=master)](https://travis-ci.com/christopher-dG/HTTPPlayback.jl)
+[![Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://docs.cdg.dev/BrokenRecord.jl/stable)
+[![Build Status](https://travis-ci.com/christopher-dG/BrokenRecord.jl.svg?branch=master)](https://travis-ci.com/christopher-dG/BrokenRecord.jl)
 
 A [VCR](https://github.com/vcr/vcr) clone in Julia.
 
 > Record your test suite's HTTP interactions and replay them during future test runs for fast, deterministic, accurate tests.
 
 ```jl
-julia> using HTTPPlayback: HTTP, configure!, playback
+julia> using BrokenRecord: HTTP, configure!, playback
 
 julia> dir = mktempdir();
 

@@ -1,12 +1,12 @@
 ```@meta
-CurrentModule = HTTPPlayback
+CurrentModule = BrokenRecord
 ```
 
-# HTTPPlayback
+# BrokenRecord
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [HTTPPlayback]
+Modules = [BrokenRecord]
 ```
