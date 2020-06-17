@@ -4,11 +4,11 @@ using Documenter
 makedocs(;
     modules=[BrokenRecord],
     authors="Chris de Graaf <me@cdg.dev> and contributors",
-    repo="https://github.com/christopher-dG/BrokenRecord.jl/blob/{commit}{path}#L{line}",
+    repo="https://github.com/JuliaTesting/BrokenRecord.jl/blob/{commit}{path}#L{line}",
     sitename="BrokenRecord.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://docs.cdg.dev/BrokenRecord.jl",
+        canonical="https://juliatesting.github.io/BrokenRecord.jl",
         assets=String[],
     ),
     pages=[
@@ -17,5 +17,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/christopher-dG/BrokenRecord.jl",
+    repo="github.com/JuliaTesting/BrokenRecord.jl",
 )

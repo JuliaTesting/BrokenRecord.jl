@@ -1,7 +1,7 @@
 # BrokenRecord
 
-[![Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://docs.cdg.dev/BrokenRecord.jl/stable)
-[![Build Status](https://travis-ci.com/christopher-dG/BrokenRecord.jl.svg?branch=master)](https://travis-ci.com/christopher-dG/BrokenRecord.jl)
+[![Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliatesting.github.io/BrokenRecord.jl)
+[![Build Status](https://travis-ci.com/JuliaTesting/BrokenRecord.jl.svg?branch=master)](https://travis-ci.com/JuliaTesting/BrokenRecord.jl)
 
 A [VCR](https://github.com/vcr/vcr) clone in Julia.
 
