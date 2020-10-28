@@ -1,7 +1,7 @@
 @context RecordingCtx
 
 Cassette.posthook(ctx::RecordingCtx, resp, ::typeof(request), ::Type{Union{}}, args...) =
-    push!(ctx.metadata.responses, resp)
+    push!(ctx.metadata.responses, deepcopy(resp))
 
 function after(ctx::RecordingCtx, path)
     for resp in ctx.metadata.responses
