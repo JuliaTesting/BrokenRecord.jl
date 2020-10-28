@@ -60,6 +60,12 @@ const url = "https://httpbin.org"
         end
         @test_throws Exception playback(() -> HTTP.get("$url/get"), path)
 
+        path = joinpath(dir, "test7.bson")
+        playback(path) do
+            resp = HTTP.get("$url/get")
+            empty!(resp.body)
+        end
+        @test !isempty(playback(() -> HTTP.get("$url/get").body, path))
     end
 
     mktempdir() do dir
