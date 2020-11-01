@@ -6,7 +6,8 @@ using Core: kwftype
 
 using BSON: bson, load
 using Cassette: Cassette, overdub, prehook, @context
-using HTTP: HTTP, Header, URI, header, mkheaders, nobody, request, request_uri
+using HTTP: HTTP, Header, URI, body_was_streamed, header, mkheaders, nobody, request,
+    request_uri
 using Suppressor: @suppress
 
 const FORMAT = v"1"

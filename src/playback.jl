@@ -47,8 +47,13 @@ after(ctx::PlaybackCtx, path) =
 
 parse_query(uri) = isempty(uri.query) ? NoQuery() : Dict(split.(split(uri.query, '&'), '='))
 
-check_body(request, body) =
-    request.body == Vector{UInt8}(body) || error("Request body does not match")
+function check_body(request, body)
+    if request.body == body_was_streamed
+        @warn "Can't verify streamed request body"
+    else
+        request.body == Vector{UInt8}(body) || error("Request body does not match")
+    end
+end
 
 check_method(request, method) =
     request.method == method || error("Expected $(request.method) request, got $method")

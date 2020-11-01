@@ -1,7 +1,7 @@
-using Test: @test, @testset, @test_throws
+using Test: @test, @testset, @test_logs, @test_throws
 
 using BSON: load
-using HTTP: HTTP
+using HTTP: HTTP, Form
 
 using BrokenRecord: FORMAT, configure!, playback
 
@@ -78,5 +78,19 @@ const url = "https://httpbin.org"
             HTTP.get("$url/get"; headers=["foo" => "bar"], query=Dict("bar" => "baz"))
         end
         @test resp1.body == resp2.body
+    end
+
+    mktempdir() do dir
+        path = joinpath(dir, "test.bson")
+        playback(path) do
+            open(@__FILE__) do f
+                HTTP.post("$url/post"; body=Form(Dict(:file => f)))
+            end
+        end
+        playback(path) do
+            open(@__FILE__) do f
+                @test_logs (:warn, r"streamed") HTTP.post("$url/post"; body=Form(Dict(:file => f)))
+            end
+        end
     end
 end
