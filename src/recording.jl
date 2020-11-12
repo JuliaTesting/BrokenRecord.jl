@@ -1,15 +1,21 @@
-@context RecordingCtx
+abstract type RecordingLayer{Next <: Layer} <: Layer{Next} end
 
-Cassette.posthook(ctx::RecordingCtx, resp, ::typeof(request), ::Type{Union{}}, args...) =
-    push!(ctx.metadata.responses, deepcopy(resp))
+before(::Type{<:RecordingLayer}, path) = nothing
 
-function after(ctx::RecordingCtx, path)
-    for resp in ctx.metadata.responses
-        filter!(drop_keys(ctx.metadata.ignore_headers), resp.request.headers)
-        resp.request.target = filter_query(resp.request, ctx.metadata.ignore_query)
+function HTTP.request(::Type{RecordingLayer{Next}}, resp) where Next
+    state = get_state()
+    push!(state.responses, deepcopy(resp))
+    return request(Next, resp)
+end
+
+function after(::Type{<:RecordingLayer}, path)
+    state = get_state()
+    for resp in state.responses
+        filter!(drop_keys(state.ignore_headers), resp.request.headers)
+        resp.request.target = filter_query(resp.request, state.ignore_query)
     end
     mkpath(dirname(path))
-    bson(path; responses=ctx.metadata.responses, format=FORMAT)
+    bson(path; responses=state.responses, format=FORMAT)
 end
 
 function filter_query(request, ignore)

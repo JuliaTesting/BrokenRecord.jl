@@ -2,13 +2,11 @@ module BrokenRecord
 
 export playback
 
-using Core: kwftype
+using Base.Threads: nthreads, threadid
 
 using BSON: bson, load
-using Cassette: Cassette, overdub, prehook, @context
-using HTTP: HTTP, Header, URI, body_was_streamed, header, mkheaders, nobody, request,
-    request_uri
-using Suppressor: @suppress
+using HTTP: HTTP, Header, Layer, Response, URI, body_was_streamed, header, insert_default!,
+    mkheaders, nobody, remove_default!, request, request_uri, stack, top_layer
 
 const FORMAT = v"1"
 const DEFAULTS = Dict(
@@ -16,14 +14,20 @@ const DEFAULTS = Dict(
     :ignore_headers => [],
     :ignore_query => [],
 )
-
-function __init__()
-    # Hiding the stacktrace from Cassette#174.
-    ctx = RecordingCtx(; metadata=(; responses=[]))
-    @suppress try overdub(ctx, () -> HTTP.get("https://httpbin.org/get")) catch end
+const STATE = map(1:nthreads()) do i
+    (; responses=Response[], ignore_headers=String[], ignore_query=String[])
 end
 
 drop_keys(keys) = p -> !(p.first in keys)
+
+get_state() = STATE[threadid()]
+
+function reset_state()
+    state = get_state()
+    empty!(state.responses)
+    empty!(state.ignore_headers)
+    empty!(state.ignore_query)
+end
 
 """
     configure!(; path=nothing, ignore_headers=nothing, ignore_query=nothing)
@@ -54,17 +58,27 @@ function playback(
     f, path;
     ignore_headers=DEFAULTS[:ignore_headers], ignore_query=DEFAULTS[:ignore_query],
 )
-    metadata = (; responses=[], ignore_headers=ignore_headers, ignore_query=ignore_query)
+    reset_state()
+    state = get_state()
+    append!(state.ignore_headers, ignore_headers)
+    append!(state.ignore_query, ignore_query)
+
     path = joinpath(DEFAULTS[:path], path)
-    ctx = if isfile(path)
-        data = load(path)
-        PlaybackCtx(; metadata=(; metadata..., responses=data[:responses]))
+    before_layer, custom_layer = if isfile(path)
+        top_layer(stack()), PlaybackLayer
     else
-        RecordingCtx(; metadata=metadata)
+        Union{}, RecordingLayer
     end
 
-    result = overdub(ctx, f)
-    after(ctx, path)
+    insert_default!(before_layer, custom_layer)
+    before(custom_layer, path)
+    result = try
+        f()
+    finally
+        remove_default!(before_layer, custom_layer)
+        after(custom_layer, path)
+    end
+
     return result
 end
 

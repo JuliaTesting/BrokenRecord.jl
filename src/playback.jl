@@ -1,49 +1,33 @@
-@context PlaybackCtx
+abstract type PlaybackLayer{Next <: Layer} <: Layer{Next} end
 
-const HTTPMethod = Union{AbstractString, Symbol}
 const NoQuery = Dict{SubString{String}, SubString{String}}
 
-function Cassette.prehook(
-    ctx::PlaybackCtx, ::kwftype(typeof(request)), kwargs, ::typeof(request),
-    m::HTTPMethod, u, h=Header[], b=nobody,
-)
-    prehook(
-        ctx,
-        request,
-        m,
-        request_uri(u, get(kwargs, :query, nothing)),
-        get(kwargs, :headers, h),
-        get(kwargs, :body, b),
-    )
+function before(::Type{<:PlaybackLayer}, path)
+    data = load(path)
+    state = get_state()
+    append!(state.responses, data[:responses])
 end
 
-function Cassette.prehook(
-    ctx::PlaybackCtx, ::typeof(request), m::HTTPMethod, u, h=Header[], body=nobody,
-)
+function HTTP.request(::Type{<:PlaybackLayer}, m, u, h=Header[], b=nobody; kwargs...)
     method = string(m)
-    uri = request_uri(u, nothing)
-    headers = mkheaders(h)
-    isempty(ctx.metadata.responses) && error("No responses remaining in the data file")
-    response = ctx.metadata.responses[1]
+    uri = request_uri(u, get(kwargs, :query, nothing))
+    headers = mkheaders(get(kwargs, :headers, h))
+    body = get(kwargs, :body, b)
+    state = get_state()
+    isempty(state) && error("No responses remaining in the data file")
+    response = popfirst!(state.responses)
     request = response.request
     check_body(request, body)
     check_method(request, method)
-    check_headers(request, headers; ignore=ctx.metadata.ignore_headers)
-    check_uri(request, uri; ignore=ctx.metadata.ignore_query)
+    check_headers(request, headers; ignore=state.ignore_headers)
+    check_uri(request, uri; ignore=state.ignore_query)
+    return response
 end
 
-function Cassette.overdub(
-    ctx::PlaybackCtx, ::kwftype(typeof(request)), k, ::typeof(request),
-    m::HTTPMethod, u, h=Header[], b=nobody,
-)
-    return overdub(ctx, request, m, u, h, b)
+function after(::Type{<:PlaybackLayer}, path)
+    state = get_state()
+    isempty(state.responses) || error("Found unused responses")
 end
-
-Cassette.overdub(ctx::PlaybackCtx, ::typeof(request), ::HTTPMethod, u, h, b) =
-    popfirst!(ctx.metadata.responses)
-
-after(ctx::PlaybackCtx, path) =
-    isempty(ctx.metadata.responses) || error("Found unused responses")
 
 parse_query(uri) = isempty(uri.query) ? NoQuery() : Dict(split.(split(uri.query, '&'), '='))
 
