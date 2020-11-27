@@ -8,7 +8,9 @@ A [VCR](https://github.com/vcr/vcr) clone in Julia.
 > Record your test suite's HTTP interactions and replay them during future test runs for fast, deterministic, accurate tests.
 
 ```jl
-julia> using BrokenRecord: HTTP, configure!, playback
+julia> using BrokenRecord: configure!, playback
+
+julia> using HTTP
 
 julia> dir = mktempdir();
 
