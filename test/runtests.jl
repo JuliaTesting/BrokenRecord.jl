@@ -1,7 +1,7 @@
 using Test: @test, @testset, @test_logs, @test_throws
 
-using BSON: load
 using HTTP: HTTP, Form
+using JSON: JSON
 
 using BrokenRecord: FORMAT, configure!, playback
 
@@ -9,18 +9,18 @@ const url = "https://httpbin.org"
 
 @testset "BrokenRecord.jl" begin
     mktempdir() do dir
-        path = joinpath(dir, "test1.bson")
+        path = joinpath(dir, "test1.json")
         @test playback(() -> 1, path) == 1
         @test isfile(path)
-        @test load(path) == Dict(:responses => [], :format => FORMAT)
+        @test JSON.parsefile(path) == Dict("responses" => [], "format" => string(FORMAT))
 
-        path = joinpath(dir, "test2.bson")
+        path = joinpath(dir, "test2.json")
         resp1 = playback(() -> HTTP.get("$url/get"), path)
         @test isfile(path)
         resp2 = playback(() -> HTTP.get("$url/get"), path)
         @test resp1.body == resp2.body
 
-        path = joinpath(dir, "test3.bson")
+        path = joinpath(dir, "test3.json")
         playback(() -> HTTP.post("$url/anything"; body="hi"), path)
         # Wrong body.
         @test_throws Exception playback(() -> HTTP.post("$url/anything"; body="bye"), path)
@@ -37,7 +37,7 @@ const url = "https://httpbin.org"
             HTTP.post("$url/anything"; query=Dict("foo" => "bar"), body="hi")
         end
 
-        path = joinpath(dir, "test4.bson")
+        path = joinpath(dir, "test4.json")
         resp1 = playback(() -> HTTP.get("$url/get"), path)
         resp2 = playback(path; ignore_headers=["foo"]) do
             HTTP.get("$url/get"; headers=["foo" => "bar"])
@@ -48,19 +48,19 @@ const url = "https://httpbin.org"
         end
         @test resp1.body == resp3.body
 
-        path = joinpath(dir, "test5.bson")
+        path = joinpath(dir, "test5.json")
         resp1 = playback(() -> HTTP.get("$url"), path)
         resp2 = playback(() -> HTTP.get("$url"), path)
         @test resp1.body == resp2.body
 
-        path = joinpath(dir, "test6.bson")
+        path = joinpath(dir, "test6.json")
         playback(path) do
             HTTP.get("$url/get")
             HTTP.post("$url/post")
         end
         @test_throws Exception playback(() -> HTTP.get("$url/get"), path)
 
-        path = joinpath(dir, "test7.bson")
+        path = joinpath(dir, "test7.json")
         playback(path) do
             resp = HTTP.get("$url/get")
             empty!(resp.body)
@@ -70,10 +70,10 @@ const url = "https://httpbin.org"
 
     mktempdir() do dir
         configure!(; path=dir, ignore_headers=["foo"], ignore_query=["bar"])
-        path = "test.bson"
+        path = "test.json"
         resp1 = playback(() -> HTTP.get("$url/get"), path)
-        @test !isfile("test.bson")
-        @test isfile(joinpath(dir, "test.bson"))
+        @test !isfile("test.json")
+        @test isfile(joinpath(dir, "test.json"))
         resp2 = playback(path) do
             HTTP.get("$url/get"; headers=["foo" => "bar"], query=Dict("bar" => "baz"))
         end
@@ -81,7 +81,7 @@ const url = "https://httpbin.org"
     end
 
     mktempdir() do dir
-        path = joinpath(dir, "test.bson")
+        path = joinpath(dir, "test.json")
         playback(path) do
             open(@__FILE__) do f
                 HTTP.post("$url/post"; body=Form(Dict(:file => f)))

@@ -2,8 +2,8 @@ abstract type PlaybackLayer{Next <: Layer} <: Layer{Next} end
 
 const NoQuery = Dict{SubString{String}, SubString{String}}
 
-function before(::Type{<:PlaybackLayer}, path)
-    data = load(path)
+function before(::Type{<:PlaybackLayer}, storage, path)
+    data = load(storage, path)
     state = get_state()
     append!(state.responses, data[:responses])
 end
@@ -14,7 +14,7 @@ function HTTP.request(::Type{<:PlaybackLayer}, m, u, h=Header[], b=nobody; kwarg
     headers = mkheaders(get(kwargs, :headers, h))
     body = get(kwargs, :body, b)
     state = get_state()
-    isempty(state) && error("No responses remaining in the data file")
+    isempty(state.responses) && error("No responses remaining in the data file")
     response = popfirst!(state.responses)
     request = response.request
     check_body(request, body)
@@ -24,7 +24,7 @@ function HTTP.request(::Type{<:PlaybackLayer}, m, u, h=Header[], b=nobody; kwarg
     return response
 end
 
-function after(::Type{<:PlaybackLayer}, path)
+function after(::Type{<:PlaybackLayer}, storage, path)
     state = get_state()
     isempty(state.responses) || error("Found unused responses")
 end

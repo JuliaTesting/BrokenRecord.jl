@@ -1,6 +1,6 @@
 abstract type RecordingLayer{Next <: Layer} <: Layer{Next} end
 
-before(::Type{<:RecordingLayer}, path) = nothing
+before(::Type{<:RecordingLayer}, storage, path) = nothing
 
 function HTTP.request(::Type{RecordingLayer{Next}}, resp) where Next
     state = get_state()
@@ -8,14 +8,14 @@ function HTTP.request(::Type{RecordingLayer{Next}}, resp) where Next
     return request(Next, resp)
 end
 
-function after(::Type{<:RecordingLayer}, path)
+function after(::Type{<:RecordingLayer}, storage, path)
     state = get_state()
     for resp in state.responses
         filter!(drop_keys(state.ignore_headers), resp.request.headers)
         resp.request.target = filter_query(resp.request, state.ignore_query)
     end
     mkpath(dirname(path))
-    bson(path; responses=state.responses, format=FORMAT)
+    store(storage, path; responses=state.responses, format=FORMAT)
 end
 
 function filter_query(request, ignore)
