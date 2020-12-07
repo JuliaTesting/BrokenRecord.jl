@@ -1,10 +1,11 @@
 using Test: @test, @testset, @test_logs, @test_throws
 
-using HTTP: HTTP, Form
+using HTTP: HTTP, Form, Request, Response
 using JSON: JSON
 
-using BrokenRecord: FORMAT, configure!, playback
+using BrokenRecord: BrokenRecord, FORMAT, configure!, playback
 
+const BR = BrokenRecord
 const url = "https://httpbin.org"
 
 @testset "BrokenRecord.jl" begin
@@ -90,6 +91,45 @@ const url = "https://httpbin.org"
         playback(path) do
             open(@__FILE__) do f
                 @test_logs (:warn, r"streamed") HTTP.post("$url/post"; body=Form(Dict(:file => f)))
+            end
+        end
+    end
+
+    @testset "Storage backends" begin
+        @testset "Backend identification" begin
+            @test BR.get_storage("foo", "yml") == (BR.YAMLStorage, "foo.yml")
+            @test BR.get_storage("foo.yml", "yml") == (BR.YAMLStorage, "foo.yml")
+            @test BR.get_storage("foo.yml", "json") == (BR.YAMLStorage, "foo.yml")
+            @test_throws Exception BR.get_storage("foo.hello", "yml")
+        end
+
+        @testset "Converting Response to/from Dict" begin
+            resp = Response(200, ["foo" => "bar"]; body="baz")
+            resp.request = Request("GET", "/", ["a" => "b"], "ok"; version=v"1.1")
+            @test BR.resp_to_dict(resp) == Dict(
+                "status" => 200,
+                "headers" => ["foo" => "bar"],
+                "body" => "baz",
+                "version" => "1.1.0",
+                "request" => Dict(
+                    "method" => "GET",
+                    "headers" => ["a" => "b"],
+                    "target" => "/",
+                    "body" => "ok",
+                    "txcount" => 0,
+                    "version" => "1.1.0",
+                ),
+            )
+        end
+
+        exts = Dict(v => k for (k, v) in BR.EXTENSIONS)
+        mktempdir() do dir
+            @testset "$(nameof(S))" for S in keys(exts)
+                ext = exts[S]
+                path = joinpath(dir, "test1.$ext")
+                resp1 = playback(() -> HTTP.get("$url/get"), path)
+                resp2 = playback(() -> HTTP.get("$url/get"), path)
+                @test resp1.body == resp2.body
             end
         end
     end
