@@ -70,6 +70,12 @@ const url = "https://httpbin.org"
     end
 
     mktempdir() do dir
+        playback(() -> (), joinpath(dir, "foo bar.json"))
+        @test !isfile(joinpath(dir, "foo bar.json"))
+        @test isfile(joinpath(dir, "foo_bar.json"))
+    end
+
+    mktempdir() do dir
         configure!(; path=dir, ignore_headers=["foo"], ignore_query=["bar"])
         path = "test.json"
         resp1 = playback(() -> HTTP.get("$url/get"), path)

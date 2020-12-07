@@ -75,7 +75,7 @@ function playback(
     append!(state.ignore_headers, ignore_headers)
     append!(state.ignore_query, ignore_query)
 
-    path = joinpath(DEFAULTS[:path], path)
+    path = joinpath(DEFAULTS[:path], replace(path, isspace => "_"))
     before_layer, custom_layer = if isfile(path)
         top_layer(stack()), PlaybackLayer
     else
