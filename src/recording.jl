@@ -12,6 +12,7 @@ function after(::Type{<:RecordingLayer}, storage, path)
     state = get_state()
     for resp in state.responses
         filter!(drop_keys(state.ignore_headers), resp.request.headers)
+        filter!(drop_keys(state.ignore_headers), resp.headers)
         resp.request.target = filter_query(resp.request, state.ignore_query)
     end
     mkpath(dirname(path))
