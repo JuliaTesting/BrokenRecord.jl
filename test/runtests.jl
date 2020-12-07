@@ -85,6 +85,16 @@ const url = "https://httpbin.org"
             HTTP.get("$url/get"; headers=["foo" => "bar"], query=Dict("bar" => "baz"))
         end
         @test resp1.body == resp2.body
+
+        path = joinpath(dir, "test2.json")
+        resp1 = playback(path) do
+            HTTP.get("$url/response-headers"; query=Dict("foo" => "bar"))
+        end
+        @test HTTP.header(resp1, "foo") == "bar"
+        resp2 = playback(path) do
+            HTTP.get("$url/response-headers"; query=Dict("foo" => "bar"))
+        end
+        @test isempty(HTTP.header(resp2, "foo"))
     end
 
     mktempdir() do dir
