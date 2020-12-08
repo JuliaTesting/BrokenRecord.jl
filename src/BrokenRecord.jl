@@ -82,17 +82,15 @@ function playback(
         Union{}, RecordingLayer
     end
 
-    insert_default!(before_layer, custom_layer)
     storage, path = get_storage(path, DEFAULTS[:extension])
     before(custom_layer, storage, path)
-    result = try
+    insert_default!(before_layer, custom_layer)
+    return try
         f()
     finally
         remove_default!(before_layer, custom_layer)
         after(custom_layer, storage, path)
     end
-
-    return result
 end
 
 include("recording.jl")
