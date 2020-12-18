@@ -53,8 +53,9 @@ Set options globally so that you needn't pass keywords to every [`playback`](@re
 - `ignore_headers`: Names of headers to remove from requests.
 - `ignore_query`: Names of query string parameters to remove from requests.
 """
-function configure!(; path=nothing, ignore_headers=nothing, ignore_query=nothing)
+function configure!(; path=nothing, extension=nothing, ignore_headers=nothing, ignore_query=nothing)
     path === nothing || (DEFAULTS[:path] = path)
+    extension === nothing || (DEFAULTS[:extension] = extension)
     ignore_headers === nothing || (DEFAULTS[:ignore_headers] = ignore_headers)
     ignore_query === nothing || (DEFAULTS[:ignore_query] = ignore_query)
     return nothing
