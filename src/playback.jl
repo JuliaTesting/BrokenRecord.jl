@@ -2,10 +2,11 @@ abstract type PlaybackLayer{Next <: Layer} <: Layer{Next} end
 
 const NoQuery = Dict{SubString{String}, SubString{String}}
 
-function before(::Type{<:PlaybackLayer}, storage, path)
-    data = load(storage, path)
-    state = get_state()
-    append!(state.responses, data[:responses])
+function before(::Type{<:PlaybackLayer}, ctx, path)
+    setfield!(ctx, :recording, false)
+    data = load(getfield(ctx, :storage), path)
+    append!(getfield(ctx, :responses), data[:responses])
+    merge!(getfield(ctx, :meta), data[:meta])
 end
 
 function HTTP.request(::Type{<:PlaybackLayer}, m, u, h=Header[], b=nobody; kwargs...)
@@ -13,20 +14,19 @@ function HTTP.request(::Type{<:PlaybackLayer}, m, u, h=Header[], b=nobody; kwarg
     uri = request_uri(u, get(kwargs, :query, nothing))
     headers = mkheaders(get(kwargs, :headers, h))
     body = get(kwargs, :body, b)
-    state = get_state()
-    isempty(state.responses) && error("No responses remaining in the data file")
-    response = popfirst!(state.responses)
+    ctx = get_context()
+    isempty(getfield(ctx, :responses)) && error("No responses remaining in the data file")
+    response = popfirst!(getfield(ctx, :responses))
     request = response.request
     check_body(request, body)
     check_method(request, method)
-    check_headers(request, headers; ignore=state.ignore_headers)
-    check_uri(request, uri; ignore=state.ignore_query)
+    check_headers(request, headers; ignore=getfield(ctx, :ignore_headers))
+    check_uri(request, uri; ignore=getfield(ctx, :ignore_query))
     return response
 end
 
-function after(::Type{<:PlaybackLayer}, storage, path)
-    state = get_state()
-    isempty(state.responses) || error("Found unused responses")
+function after(::Type{<:PlaybackLayer}, ctx, path)
+    isempty(getfield(ctx, :responses)) || error("Found unused responses")
 end
 
 parse_query(uri) = isempty(uri.query) ? NoQuery() : Dict(split.(split(uri.query, '&'), '='))

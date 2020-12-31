@@ -19,19 +19,33 @@ const DEFAULTS = Dict(
     :ignore_query => [],
     :extension => "yml",
 )
-const STATE = map(1:nthreads()) do i
-    (; responses=Response[], ignore_headers=String[], ignore_query=String[])
+
+mutable struct Context
+    recording::Bool
+    responses::Vector{Response}
+    ignore_headers::Vector{String}
+    ignore_query::Vector{String}
+    meta::Dict{Symbol, Any}
+    storage::Type
+
+    Context() = new(false, [], [], [], Dict())
 end
+
+Base.getproperty(ctx::Context, k::Symbol) = get(getfield(ctx, :meta), k, nothing)
+Base.setproperty!(ctx::Context, k::Symbol, v) = getfield(ctx, :meta)[k] = v
+
+const CONTEXTS = map(_ -> Context(), 1:nthreads())
 
 drop_keys(keys) = p -> !(p.first in keys)
 
-get_state() = STATE[threadid()]
+get_ctx() = CONTEXTS[threadid()]
 
-function reset_state()
-    state = get_state()
-    empty!(state.responses)
-    empty!(state.ignore_headers)
-    empty!(state.ignore_query)
+function reset_context()
+    ctx = get_context()
+    empty!(getfield(ctx, :responses))
+    empty!(getfield(ctx, :ignore_headers))
+    empty!(getfield(ctx, :ignore_query))
+    empty!(getfield(ctx, :meta))
 end
 
 """
@@ -71,26 +85,27 @@ function playback(
     f, path;
     ignore_headers=DEFAULTS[:ignore_headers], ignore_query=DEFAULTS[:ignore_query],
 )
-    reset_state()
-    state = get_state()
-    append!(state.ignore_headers, ignore_headers)
-    append!(state.ignore_query, ignore_query)
+    reset_context()
+    ctx = get_context()
+    append!(getfield(ctx, :ignore_headers), ignore_headers)
+    append!(getfield(ctx, :ignore_query), ignore_query)
 
     path = joinpath(DEFAULTS[:path], replace(path, isspace => "_"))
+    storage, path = get_storage(path, DEFAULTS[:extension])
+    setfield!(ctx, :storage, storage)
     before_layer, custom_layer = if isfile(path)
         top_layer(stack()), PlaybackLayer
     else
         Union{}, RecordingLayer
     end
 
-    storage, path = get_storage(path, DEFAULTS[:extension])
-    before(custom_layer, storage, path)
+    before(custom_layer, ctx, path)
     insert_default!(before_layer, custom_layer)
     return try
-        f()
+        f(ctx)
     finally
         remove_default!(before_layer, custom_layer)
-        after(custom_layer, storage, path)
+        after(custom_layer, ctx, path)
     end
 end
 

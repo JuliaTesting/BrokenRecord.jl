@@ -1,22 +1,24 @@
 abstract type RecordingLayer{Next <: Layer} <: Layer{Next} end
 
-before(::Type{<:RecordingLayer}, storage, path) = nothing
+before(::Type{<:RecordingLayer}, ctx, path) = setfield!(ctx, :recording, true)
 
 function HTTP.request(::Type{RecordingLayer{Next}}, resp) where Next
-    state = get_state()
-    push!(state.responses, deepcopy(resp))
+    ctx = get_context()
+    push!(getfield(ctx, :responses), deepcopy(resp))
     return request(Next, resp)
 end
 
-function after(::Type{<:RecordingLayer}, storage, path)
-    state = get_state()
-    for resp in state.responses
-        filter!(drop_keys(state.ignore_headers), resp.request.headers)
-        filter!(drop_keys(state.ignore_headers), resp.headers)
-        resp.request.target = filter_query(resp.request, state.ignore_query)
+function after(::Type{<:RecordingLayer}, ctx, path)
+    for resp in ctx.responses
+        filter!(drop_keys(getfield(ctx, :ignore_headers)), resp.request.headers)
+        filter!(drop_keys(getfield(ctx, :ignore_headers)), resp.headers)
+        resp.request.target = filter_query(resp.request, getfield(ctx, :ignore_query))
     end
     mkpath(dirname(path))
-    store(storage, path; responses=state.responses, format=FORMAT)
+    store(
+        getfield(ctx, :storage), path;
+        responses=getfield(ctx, :responses), meta=getfield(ctx, :meta), format=FORMAT,
+    )
 end
 
 function filter_query(request, ignore)
