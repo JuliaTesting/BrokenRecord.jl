@@ -111,6 +111,15 @@ const url = "https://httpbin.org"
         end
     end
 
+    @testset "Without extension" begin
+        mktempdir() do dir
+            configure!(; path=dir, extension="yml")
+            playback(() -> HTTP.get("$url/get"), "foo")
+            @test isfile(joinpath(dir, "foo.yml"))
+            @test_throws Exception playback(() -> HTTP.get("$url/get?a=b"), "foo")
+        end
+    end
+
     @testset "Storage backends" begin
         @testset "Backend identification" begin
             @test BR.get_storage("foo", "yml") == (BR.YAMLStorage, "foo.yml")

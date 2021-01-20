@@ -77,13 +77,14 @@ function playback(
     append!(state.ignore_query, ignore_query)
 
     path = joinpath(DEFAULTS[:path], replace(path, isspace => "_"))
+    storage, path = get_storage(path, DEFAULTS[:extension])
+
     before_layer, custom_layer = if isfile(path)
         top_layer(stack()), PlaybackLayer
     else
         Union{}, RecordingLayer
     end
 
-    storage, path = get_storage(path, DEFAULTS[:extension])
     before(custom_layer, storage, path)
     insert_default!(before_layer, custom_layer)
     return try
