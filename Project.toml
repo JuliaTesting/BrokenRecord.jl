@@ -12,7 +12,7 @@ JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
-BSON = "0.2"
+BSON = "0.2, 0.3"
 HTTP = "0.9"
 JLD2 = "0.3, 0.4"
 JLSO = "2"
