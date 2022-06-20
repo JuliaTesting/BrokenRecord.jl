@@ -13,7 +13,7 @@ YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
 BSON = "0.2, 0.3"
-HTTP = "0.9"
+HTTP = "1"
 JLD2 = "0.3, 0.4"
 JLSO = "2"
 JSON = "0.21"
