@@ -1,7 +1,7 @@
 name = "BrokenRecord"
 uuid = "bdd55f5b-6e67-4da1-a080-6086e55655a0"
 authors = ["Chris de Graaf <me@cdg.dev> and contributors"]
-version = "0.1.8"
+version = "0.1.9"
 
 [deps]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
