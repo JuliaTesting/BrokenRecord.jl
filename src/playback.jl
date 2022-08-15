@@ -1,41 +1,37 @@
-abstract type PlaybackLayer{Next <: Layer} <: Layer{Next} end
+struct PlaybackLayer end
 
 const NoQuery = Dict{SubString{String}, SubString{String}}
 
-function before(::Type{<:PlaybackLayer}, storage, path)
+function before(::Type{PlaybackLayer}, storage, path)
     data = load(storage, path)
     state = get_state()
     append!(state.responses, data[:responses])
 end
 
-function HTTP.request(::Type{<:PlaybackLayer}, m, u, h=Header[], b=nobody; kwargs...)
-    method = string(m)
-    uri = request_uri(u, get(kwargs, :query, nothing))
-    headers = mkheaders(get(kwargs, :headers, h))
-    body = get(kwargs, :body, b)
-    state = get_state()
-    isempty(state.responses) && error("No responses remaining in the data file")
-    response = popfirst!(state.responses)
-    request = response.request
-    check_body(request, body)
-    check_method(request, method)
-    check_headers(request, headers; ignore=state.ignore_headers)
-    check_uri(request, uri; ignore=state.ignore_query)
-    return response
+function playbacklayer(handler)
+    function playback(req; kw...)
+        state = get_state()
+        isempty(state.responses) && error("No responses remaining in the data file")
+        response = popfirst!(state.responses)
+        request = response.request
+        check_body(request, req.body)
+        check_method(request, req.method)
+        check_headers(request, req.headers; ignore=state.ignore_headers)
+        check_uri(request, req.url; ignore=state.ignore_query)
+        return response
+    end
 end
 
-function after(::Type{<:PlaybackLayer}, storage, path)
+function after(::Type{PlaybackLayer}, storage, path)
     state = get_state()
     isempty(state.responses) || error("Found unused responses")
 end
 
-parse_query(uri) = isempty(uri.query) ? NoQuery() : Dict(split.(split(uri.query, '&'), '='))
-
 function check_body(request, body)
-    if request.body == body_was_streamed
+    if request.body == b"[Message Body was streamed]"
         @warn "Can't verify streamed request body"
     else
-        request.body == Vector{UInt8}(body) || error("Request body does not match")
+        request.body == body || error("Request body does not match")
     end
 end
 
@@ -48,6 +44,8 @@ function check_headers(request, headers; ignore)
     # that the user didn't explicitly provide (Content-Length, Host, User-Agent).
     issubset(observed, request.headers) || error("Request headers do not match")
 end
+
+parse_query(uri) = isempty(uri.query) ? NoQuery() : Dict(split.(split(uri.query, '&'), '='))
 
 function check_uri(request, uri; ignore)
     # Check host.

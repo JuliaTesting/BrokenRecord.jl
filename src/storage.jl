@@ -36,7 +36,7 @@ function resp_to_dict(resp)
             "headers" => req.headers,
             "target" => req.target,
             "body" => repr_body(req.body),
-            "txcount" => req.txcount,
+            "txcount" => 0,
             "version" => string(req.version),
         ),
     )
@@ -52,12 +52,20 @@ function dict_to_resp(dict)
     resp.request.body = Vector{UInt8}(dict["request"]["body"])
     resp.request.headers = dicts_to_pairs(dict["request"]["headers"])
     resp.request.target = dict["request"]["target"]
-    resp.request.txcount = dict["request"]["txcount"]
     resp.request.version = VersionNumber(dict["request"]["version"])
     return resp
 end
 
-repr_body(body) = isvalid(String, body) ? String(body) : resp.body
+function repr_body(body)
+    if !HTTP.isbytes(body)
+        return "[Message Body was streamed]"
+    else
+        buf = IOBuffer()
+        write(buf, body)
+        return String(take!(buf))
+    end
+end
+
 dicts_to_pairs(dicts) = map(d -> first(pairs(d)), dicts)
 write_json(path, data) = open(io -> JSON.print(io, data, 2), path, "w")
 

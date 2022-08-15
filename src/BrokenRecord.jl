@@ -5,8 +5,7 @@ export playback
 using Base.Threads: nthreads, threadid
 
 using BSON: BSON
-using HTTP: HTTP, Header, Layer, Response, URI, body_was_streamed, header, insert_default!,
-    mkheaders, nobody, remove_default!, request, request_uri, stack, top_layer
+using HTTP: HTTP, Header, Response, URI, header, mkheaders
 using JLD2: JLD2
 using JLSO: JLSO
 using JSON: JSON
@@ -79,19 +78,15 @@ function playback(
     path = joinpath(DEFAULTS[:path], replace(path, isspace => "_"))
     storage, path = get_storage(path, DEFAULTS[:extension])
 
-    before_layer, custom_layer = if isfile(path)
-        top_layer(stack()), PlaybackLayer
-    else
-        Union{}, RecordingLayer
-    end
+    T, layer = isfile(path) ? (PlaybackLayer, playbacklayer) : (RecordingLayer, recordinglayer)
 
-    before(custom_layer, storage, path)
-    insert_default!(before_layer, custom_layer)
+    before(T, storage, path)
+    HTTP.pushlayer!(layer)
     return try
         f()
     finally
-        remove_default!(before_layer, custom_layer)
-        after(custom_layer, storage, path)
+        HTTP.poplayer!()
+        after(T, storage, path)
     end
 end
 
