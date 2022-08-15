@@ -1,6 +1,6 @@
 using Test: @test, @testset, @test_logs, @test_throws
 
-using HTTP: HTTP, Form, Request, Response
+using HTTP: HTTP, Form, Request, Response, URIs
 using JSON: JSON
 
 using BrokenRecord: BrokenRecord, FORMAT, configure!, playback
@@ -104,7 +104,8 @@ const url = "https://httpbin.org"
                 HTTP.post("$url/post"; body=Form(Dict(:file => f)))
             end
         end
-        playback(path) do
+        # ignore Content-Type/Content-Length because for Form, a random boundary is generated.
+        playback(path, ignore_headers=["Content-Type", "Content-Length"]) do
             open(@__FILE__) do f
                 @test_logs (:warn, r"streamed") HTTP.post("$url/post"; body=Form(Dict(:file => f)))
             end

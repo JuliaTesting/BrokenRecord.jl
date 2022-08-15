@@ -1,14 +1,17 @@
-abstract type RecordingLayer{Next <: Layer} <: Layer{Next} end
+struct RecordingLayer end
 
-before(::Type{<:RecordingLayer}, storage, path) = nothing
+before(::Type{RecordingLayer}, storage, path) = nothing
 
-function HTTP.request(::Type{RecordingLayer{Next}}, resp) where Next
-    state = get_state()
-    push!(state.responses, deepcopy(resp))
-    return request(Next, resp)
+function recordinglayer(handler)
+    function record(req; kw...)
+        resp = handler(req; kw...)
+        state = get_state()
+        push!(state.responses, deepcopy(resp))
+        return resp
+    end
 end
 
-function after(::Type{<:RecordingLayer}, storage, path)
+function after(::Type{RecordingLayer}, storage, path)
     state = get_state()
     for resp in state.responses
         filter!(drop_keys(state.ignore_headers), resp.request.headers)
