@@ -72,6 +72,12 @@ playback(() -> HTTP.get("https://httpbin.org/delay/5"), "test.bson")
 Here is an example of how you might use BrokenRecord.jl within your testing suite (notice how you can use BrokenRecord.jl within block syntax as well):
 
 ```julia
+#= 
+
+Example taken from 
+https://github.com/SebastianM-C/RegistryCI.jl
+
+=#
 using BrokenRecord: BrokenRecord, HTTP, playback
 using RegistryCI: TagBot
 using Test: @test, @testset
