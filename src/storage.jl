@@ -30,14 +30,14 @@ function resp_to_dict(resp)
         "status" => resp.status,
         "headers" => resp.headers,
         "body" => repr_body(resp.body),
-        "version" => string(resp.version),
+        "version" => repr_http_version(resp.version),
         "request" => Dict(
             "method" => req.method,
             "headers" => req.headers,
             "target" => req.target,
             "body" => repr_body(req.body),
             "txcount" => 0,
-            "version" => string(req.version),
+            "version" => repr_http_version(req.version),
         ),
     )
 end
@@ -47,14 +47,19 @@ function dict_to_resp(dict)
     resp.status = dict["status"]
     resp.headers = dicts_to_pairs(dict["headers"])
     resp.body = Vector{UInt8}(dict["body"])
-    resp.version = VersionNumber(dict["version"])
+    resp.version = parse_http_version(dict["version"])
     resp.request.method = dict["request"]["method"]
     resp.request.body = Vector{UInt8}(dict["request"]["body"])
     resp.request.headers = dicts_to_pairs(dict["request"]["headers"])
     resp.request.target = dict["request"]["target"]
-    resp.request.version = VersionNumber(dict["request"]["version"])
+    resp.request.version = parse_http_version(dict["request"]["version"])
     return resp
 end
+
+repr_http_version(version::VersionNumber) = string(version)
+repr_http_version(version::HTTP.Strings.HTTPVersion) = repr_http_version(VersionNumber(version))
+
+parse_http_version(version::AbstractString) = HTTP.Strings.HTTPVersion(version)
 
 function repr_body(body)
     if !HTTP.isbytes(body)
