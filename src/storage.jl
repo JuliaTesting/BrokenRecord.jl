@@ -71,8 +71,10 @@ function repr_body(body)
     end
 end
 
-dicts_to_pairs(dicts) = map(d -> first(pairs(d)), dicts)
+dicts_to_pairs(dicts::Vector) = map(d -> first(pairs(d)), dicts)
+dicts_to_pairs(dicts::Dict) = collect(pairs(dicts))
 write_json(path, data) = open(io -> JSON.print(io, data, 2), path, "w")
+load_json(path) = JSON.parsefile(path; dicttype=Dict)
 
 load(::Type{BSONStorage}, path) = BSON.load(path)
 store(::Type{BSONStorage}, path; responses, format) =
@@ -90,7 +92,7 @@ store(::Type{JLSOStorage}, path; responses, format) =
     JLSO.save(path, :responses => responses, :format => format)
 
 for (Storage, load_fun, store_fun) in (
-    (JSONStorage, JSON.parsefile, write_json),
+    (JSONStorage, load_json, write_json),
     (YAMLStorage, YAML.load_file, YAML.write_file),
 )
     @eval begin
