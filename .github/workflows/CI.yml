@@ -1,7 +1,11 @@
 name: CI
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - master
+      - main
+      - release-*
+  pull_request:
 jobs:
   test:
     name: Julia ${{ matrix.version }}
